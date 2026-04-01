@@ -6,6 +6,7 @@
 const SPREADSHEET_ID = '1kTlFPVCw4xmo_luHUksCko_WgWzov5VVY53-bE3Qc1g';
 
 function getSheet(name) {
+  return SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(name);
 }
 
 function doGet(e) {
