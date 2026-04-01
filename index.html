@@ -699,7 +699,7 @@ const SONGS = [
 ];
 
 let userVotes = {};
-let isDemo = true;
+let isDemo = !CONFIG.API_URL;
 
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -926,18 +926,28 @@ function showStatus(elementId, message, type) {
 }
 
 async function init() {
+  // Always show the hardcoded songs list.
+  // If API is configured, votes and suggestions save to Google Sheets.
+  // If the Songs sheet is populated, merge in vote tallies from the API.
+  renderSongs(SONGS);
+
   if (CONFIG.API_URL) {
-    isDemo = false;
     try {
-      const response = await fetch(CONFIG.API_URL + '?action=songs');
+      const response = await fetch(CONFIG.API_URL + '?action=results');
       const data = await response.json();
-      renderSongs(data.songs);
+      if (data.success && data.songs) {
+        // Merge vote tallies from the sheet into the hardcoded songs
+        for (var i = 0; i < SONGS.length; i++) {
+          var match = data.songs.find(function(s) { return String(s.id) === String(SONGS[i].id); });
+          if (match && match.votes) {
+            SONGS[i].votes = match.votes;
+          }
+        }
+        renderSongs(SONGS);
+      }
     } catch (e) {
-      isDemo = true;
-      renderSongs(SONGS);
+      // API not reachable — songs still display, votes just won't persist
     }
-  } else {
-    renderSongs(SONGS);
   }
 }
 
