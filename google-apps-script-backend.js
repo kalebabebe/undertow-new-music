@@ -10,11 +10,23 @@ function getSheet(name) {
 }
 
 function doGet(e) {
-  const action = e.parameter.action || 'songs';
+  var action = e.parameter.action || 'songs';
+  var callback = e.parameter.callback;
+  var data;
+
   if (action === 'songs' || action === 'results') {
-    return jsonResponse(getSongsWithVotes());
+    data = getSongsWithVotes();
+  } else {
+    data = { error: 'Unknown action' };
   }
-  return jsonResponse({ error: 'Unknown action' });
+
+  // Support JSONP for cross-origin GET requests
+  if (callback) {
+    return ContentService
+      .createTextOutput(callback + '(' + JSON.stringify(data) + ')')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return jsonResponse(data);
 }
 
 function doPost(e) {

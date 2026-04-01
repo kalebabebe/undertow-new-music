@@ -797,12 +797,7 @@ async function submitVotes() {
   btn.textContent = 'Submitting...';
 
   try {
-    const response = await fetch(CONFIG.API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: 'vote', voter: name, votes: userVotes })
-    });
-    const result = await response.json();
+    const result = await postToAPI({ action: 'vote', voter: name, votes: userVotes });
     if (result.success) {
       showStatus('vote-status', 'Votes submitted — thank you, ' + name + '!', 'success');
       userVotes = {};
@@ -854,12 +849,7 @@ async function submitSuggestion() {
   }
 
   try {
-    const response = await fetch(CONFIG.API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(data)
-    });
-    const result = await response.json();
+    const result = await postToAPI(data);
     if (result.success) {
       showStatus('suggest-status', 'Song suggested — nice pick, ' + name + '!', 'success');
       ['suggest-song','suggest-artist','suggest-link','suggest-notes'].forEach(id =>
@@ -874,13 +864,9 @@ async function submitSuggestion() {
 
 function loadResults() {
   if (isDemo) { renderResults(SONGS); return; }
-  fetch(CONFIG.API_URL + '?action=results')
-    .then(r => r.json())
-    .then(data => renderResults(data.songs))
-    .catch(() => {
-      document.getElementById('results-list').innerHTML =
-        '<div class="status-msg status-error">Could not load results.</div>';
-    });
+  fetchFromAPI('results')
+    .then(function(data) { if (data.songs) renderResults(data.songs); else renderResults(SONGS); })
+    .catch(function() { renderResults(SONGS); });
 }
 
 function renderResults(songs) {
@@ -919,6 +905,40 @@ function renderResults(songs) {
   }).join('');
 }
 
+// Google Apps Script returns a 302 redirect which causes CORS issues.
+// Using no-cors mode for POST (we don't need the response body, just confirmation).
+// Using a JSONP-style callback via script tag for GET.
+function postToAPI(data) {
+  return fetch(CONFIG.API_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(data)
+  }).then(function() {
+    // no-cors means opaque response — we assume success if no network error
+    return { success: true };
+  });
+}
+
+function fetchFromAPI(action) {
+  return new Promise(function(resolve, reject) {
+    var callbackName = 'gasCallback_' + Date.now();
+    var script = document.createElement('script');
+    window[callbackName] = function(data) {
+      delete window[callbackName];
+      document.head.removeChild(script);
+      resolve(data);
+    };
+    script.src = CONFIG.API_URL + '?action=' + action + '&callback=' + callbackName;
+    script.onerror = function() {
+      delete window[callbackName];
+      document.head.removeChild(script);
+      reject(new Error('Failed to load'));
+    };
+    document.head.appendChild(script);
+  });
+}
+
 function showStatus(elementId, message, type) {
   const el = document.getElementById(elementId);
   el.innerHTML = `<div class="status-msg status-${type}">${message}</div>`;
@@ -933,10 +953,8 @@ async function init() {
 
   if (CONFIG.API_URL) {
     try {
-      const response = await fetch(CONFIG.API_URL + '?action=results');
-      const data = await response.json();
+      var data = await fetchFromAPI('results');
       if (data.success && data.songs) {
-        // Merge vote tallies from the sheet into the hardcoded songs
         for (var i = 0; i < SONGS.length; i++) {
           var match = data.songs.find(function(s) { return String(s.id) === String(SONGS[i].id); });
           if (match && match.votes) {
