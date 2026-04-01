@@ -9,18 +9,29 @@ function getSheet(name) {
   return SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(name);
 }
 
+// Everything goes through doGet using JSONP to avoid CORS redirect issues.
+// POST data is passed as a URL-encoded 'payload' parameter.
 function doGet(e) {
   var action = e.parameter.action || 'songs';
   var callback = e.parameter.callback;
   var data;
 
-  if (action === 'songs' || action === 'results') {
-    data = getSongsWithVotes();
-  } else {
-    data = { error: 'Unknown action' };
+  try {
+    if (action === 'vote' && e.parameter.payload) {
+      var voteData = JSON.parse(decodeURIComponent(e.parameter.payload));
+      data = recordVotes(voteData);
+    } else if (action === 'suggest' && e.parameter.payload) {
+      var suggestData = JSON.parse(decodeURIComponent(e.parameter.payload));
+      data = recordSuggestion(suggestData);
+    } else if (action === 'songs' || action === 'results') {
+      data = getSongsWithVotes();
+    } else {
+      data = { error: 'Unknown action' };
+    }
+  } catch (err) {
+    data = { error: err.message };
   }
 
-  // Support JSONP for cross-origin GET requests
   if (callback) {
     return ContentService
       .createTextOutput(callback + '(' + JSON.stringify(data) + ')')
@@ -31,7 +42,7 @@ function doGet(e) {
 
 function doPost(e) {
   try {
-    const data = JSON.parse(e.postData.contents);
+    var data = JSON.parse(e.postData.contents);
     if (data.action === 'vote') return jsonResponse(recordVotes(data));
     if (data.action === 'suggest') return jsonResponse(recordSuggestion(data));
     return jsonResponse({ error: 'Unknown action' });
