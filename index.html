@@ -166,6 +166,43 @@
   .badge-champion { background: #e3f2fd; color: #1565c0; }
   .badge-style { background: #f3e5f5; color: #7b1fa2; }
 
+  .song-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .fav-btn {
+    padding: 0.4rem 0.6rem;
+    border: 2px solid var(--light-gray);
+    border-radius: 6px;
+    background: white;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    line-height: 1;
+  }
+
+  .fav-btn:hover { border-color: var(--gold-light); }
+  .fav-btn.faved { border-color: var(--gold); background: var(--gold-light); }
+
+  .song-note {
+    width: 100%;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--light-gray);
+    border-radius: 6px;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 0.82rem;
+    color: var(--dark);
+    resize: none;
+    height: 2.2rem;
+    transition: height 0.15s, border-color 0.15s;
+  }
+
+  .song-note:focus { outline: none; border-color: var(--gold); height: 4rem; }
+  .song-note::placeholder { color: #b0b0b0; }
+
   .vote-buttons {
     display: flex;
     gap: 0.5rem;
@@ -463,15 +500,6 @@ const SONGS = [
     votes: { yes: 0, open: 0, no: 0 }
   },
   {
-    id: 3,
-    title: 'Mundo Čoček',
-    artist: 'Boban Markovic Orkestar',
-    sheet: 'unknown',
-    champion: 'Shamus',
-    link: 'https://www.youtube.com/results?search_query=Boban+Markovic+Orkestar+Mundo+Cocek',
-    votes: { yes: 0, open: 0, no: 0 }
-  },
-  {
     id: 4,
     title: 'Hayloft',
     artist: 'Mother Mother',
@@ -602,7 +630,7 @@ const SONGS = [
     title: 'Ghoongte Mein Chanda',
     artist: 'from Koyla (Bollywood)',
     sheet: 'no',
-    champion: 'Michael / Kaleb',
+    champion: 'Michael',
     link: 'https://m.youtube.com/watch?v=Cu-_i6oFPtY',
     votes: { yes: 0, open: 0, no: 0 }
   },
@@ -692,13 +720,33 @@ const SONGS = [
     title: 'Simpatico',
     artist: 'Vandermark 5',
     sheet: 'no',
-    champion: 'Kaleb',
+    champion: 'Michael',
     link: 'https://m.youtube.com/watch?v=kElgfnCT9LA',
+    votes: { yes: 0, open: 0, no: 0 }
+  },
+  {
+    id: 29,
+    title: 'Valle E Gajdës - Dance',
+    artist: 'A. L. Lloyd',
+    sheet: 'unknown',
+    champion: '',
+    link: 'https://www.youtube.com/results?search_query=A+L+Lloyd+Valle+E+Gajdes+Dance',
+    votes: { yes: 0, open: 0, no: 0 }
+  },
+  {
+    id: 30,
+    title: 'Never Let You Go',
+    artist: 'Third Eye Blind',
+    sheet: 'unknown',
+    champion: '',
+    link: 'https://youtu.be/KIuLB8saO1g?si=APtnciJeLsNcbuEG',
     votes: { yes: 0, open: 0, no: 0 }
   }
 ];
 
 let userVotes = {};
+let userFavs = {};
+let userNotes = {};
 let isDemo = !CONFIG.API_URL;
 
 function switchTab(tab) {
@@ -740,20 +788,29 @@ function renderSongs(songs) {
           ${sheetBadge}
           ${song.champion ? `<span class="badge badge-champion">Suggested: ${song.champion}</span>` : ''}
         </div>
-        <div class="vote-buttons">
-          <button class="vote-btn ${userVotes[song.id] === 'yes' ? 'selected-yes' : ''}"
-                  onclick="vote(${song.id}, 'yes', this)">
-            Let's do it
+        <div class="song-actions">
+          <button class="fav-btn ${userFavs[song.id] ? 'faved' : ''}"
+                  onclick="toggleFav(${song.id}, this)" title="Favorite">
+            ${userFavs[song.id] ? '\u2605' : '\u2606'}
           </button>
-          <button class="vote-btn ${userVotes[song.id] === 'open' ? 'selected-open' : ''}"
-                  onclick="vote(${song.id}, 'open', this)">
-            I'm open to it
-          </button>
-          <button class="vote-btn ${userVotes[song.id] === 'no' ? 'selected-no' : ''}"
-                  onclick="vote(${song.id}, 'no', this)">
-            Not for me
-          </button>
+          <div class="vote-buttons" style="flex:1;">
+            <button class="vote-btn ${userVotes[song.id] === 'yes' ? 'selected-yes' : ''}"
+                    onclick="vote(${song.id}, 'yes', this)">
+              Let's do it
+            </button>
+            <button class="vote-btn ${userVotes[song.id] === 'open' ? 'selected-open' : ''}"
+                    onclick="vote(${song.id}, 'open', this)">
+              I'm open to it
+            </button>
+            <button class="vote-btn ${userVotes[song.id] === 'no' ? 'selected-no' : ''}"
+                    onclick="vote(${song.id}, 'no', this)">
+              Not for me
+            </button>
+          </div>
         </div>
+        <textarea class="song-note" data-song-id="${song.id}"
+                  placeholder="Any thoughts on this one?"
+                  oninput="userNotes[${song.id}]=this.value">${userNotes[song.id] || ''}</textarea>
         ${song.votes && (song.votes.yes + song.votes.open + song.votes.no > 0) ? `
           <div class="vote-tally">
             <span class="tally-item"><span class="tally-dot dot-yes"></span> ${song.votes.yes}</span>
@@ -773,6 +830,12 @@ function vote(songId, value, btn) {
     b.classList.remove('selected-yes', 'selected-open', 'selected-no');
   });
   btn.classList.add(`selected-${value}`);
+}
+
+function toggleFav(songId, btn) {
+  userFavs[songId] = !userFavs[songId];
+  btn.classList.toggle('faved');
+  btn.textContent = userFavs[songId] ? '\u2605' : '\u2606';
 }
 
 async function submitVotes() {
@@ -797,7 +860,7 @@ async function submitVotes() {
   btn.textContent = 'Submitting...';
 
   try {
-    const result = await postToAPI({ action: 'vote', voter: name, votes: userVotes });
+    const result = await postToAPI({ action: 'vote', voter: name, votes: userVotes, favs: userFavs, notes: userNotes });
     if (result.success) {
       showStatus('vote-status', 'Votes submitted — thank you, ' + name + '!', 'success');
       userVotes = {};
@@ -863,10 +926,27 @@ async function submitSuggestion() {
 }
 
 function loadResults() {
-  if (isDemo) { renderResults(SONGS); return; }
-  fetchFromAPI('results')
-    .then(function(data) { if (data.songs) renderResults(data.songs); else renderResults(SONGS); })
-    .catch(function() { renderResults(SONGS); });
+  // Always render from hardcoded SONGS (with any merged vote tallies)
+  renderResults(SONGS);
+  if (!isDemo) {
+    fetchFromAPI('results')
+      .then(function(data) {
+        if (data.success && data.songs) {
+          mergeVoteTallies(data.songs);
+          renderResults(SONGS);
+        }
+      })
+      .catch(function() {});
+  }
+}
+
+function mergeVoteTallies(apiSongs) {
+  for (var i = 0; i < SONGS.length; i++) {
+    var match = apiSongs.find(function(s) { return String(s.id) === String(SONGS[i].id); });
+    if (match && match.votes) {
+      SONGS[i].votes = match.votes;
+    }
+  }
 }
 
 function renderResults(songs) {
@@ -958,12 +1038,7 @@ async function init() {
     try {
       var data = await fetchFromAPI('results');
       if (data.success && data.songs) {
-        for (var i = 0; i < SONGS.length; i++) {
-          var match = data.songs.find(function(s) { return String(s.id) === String(SONGS[i].id); });
-          if (match && match.votes) {
-            SONGS[i].votes = match.votes;
-          }
-        }
+        mergeVoteTallies(data.songs);
         renderSongs(SONGS);
       }
     } catch (e) {

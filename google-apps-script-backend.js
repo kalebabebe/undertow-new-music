@@ -99,9 +99,11 @@ function getSongsWithVotes() {
 function recordVotes(data) {
   var sheet = getSheet('Votes');
   var now = new Date();
-  var songIds = Object.keys(data.votes);
+  var songIds = Object.keys(data.votes || {});
   for (var i = 0; i < songIds.length; i++) {
-    sheet.appendRow([now, data.voter, songIds[i], data.votes[songIds[i]]]);
+    var isFav = data.favs && data.favs[songIds[i]] ? 'yes' : '';
+    var note = data.notes && data.notes[songIds[i]] ? data.notes[songIds[i]] : '';
+    sheet.appendRow([now, data.voter, songIds[i], data.votes[songIds[i]], isFav, note]);
   }
   return { success: true };
 }
