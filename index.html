@@ -944,8 +944,13 @@ function renderResults(songs) {
       <div class="results-card">
         <div class="results-rank">${i + 1}</div>
         <div class="results-info">
-          <div class="results-title">${song.title}</div>
-          <div style="font-size:0.82rem;color:var(--gray);">${song.artist}</div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem;">
+            <div>
+              <div class="results-title">${song.title}</div>
+              <div style="font-size:0.82rem;color:var(--gray);">${song.artist}</div>
+            </div>
+            ${song.link ? '<a href="' + song.link + '" target="_blank" rel="noopener" class="song-listen">Listen</a>' : ''}
+          </div>
           <div class="results-bar">
             <div class="bar-fav" style="width:${pctFav}%"></div>
             <div class="bar-yes" style="width:${pctYes}%"></div>
