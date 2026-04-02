@@ -70,35 +70,27 @@ function getSongsWithVotes() {
       style: row[5] || '',
       notes: row[6] || '',
       link: row[7] || '',
-      votes: { yes: 0, open: 0, no: 0 },
-      favs: 0
+      votes: { fav: 0, yes: 0, open: 0, no: 0 }
     });
   }
 
   if (votesSheet.getLastRow() > 1) {
     const voteData = votesSheet.getDataRange().getValues();
     const latestVotes = {};
-    const latestFavs = {};
     for (let i = 1; i < voteData.length; i++) {
       const voter = voteData[i][1];
       const songId = voteData[i][2];
       const vote = voteData[i][3];
-      const fav = voteData[i][4];
-      latestVotes[voter + '__' + songId] = vote;
-      latestFavs[voter + '__' + songId] = (fav === 'yes');
+      if (vote) {
+        latestVotes[voter + '__' + songId] = vote;
+      }
     }
     for (var key in latestVotes) {
       var songId = key.split('__')[1];
       var vote = latestVotes[key];
-      var isFav = latestFavs[key];
       var song = songs.find(function(s) { return String(s.id) === String(songId); });
-      if (song) {
-        if (song.votes[vote] !== undefined) {
-          song.votes[vote]++;
-        }
-        if (isFav) {
-          song.favs++;
-        }
+      if (song && song.votes[vote] !== undefined) {
+        song.votes[vote]++;
       }
     }
   }
@@ -109,22 +101,19 @@ function getSongsWithVotes() {
 function recordVotes(data) {
   var sheet = getSheet('Votes');
   var now = new Date();
-  // Collect all song IDs that have a vote, fav, or note
-  var allIds = {};
   var votes = data.votes || {};
-  var favs = data.favs || {};
   var notes = data.notes || {};
+  // Collect all song IDs that have a vote or note
+  var allIds = {};
   var key;
   for (key in votes) { allIds[key] = true; }
-  for (key in favs) { if (favs[key]) { allIds[key] = true; } }
   for (key in notes) { if (notes[key]) { allIds[key] = true; } }
   var songIds = Object.keys(allIds);
   for (var i = 0; i < songIds.length; i++) {
     var id = songIds[i];
     var vote = votes[id] || '';
-    var isFav = favs[id] ? 'yes' : '';
     var note = notes[id] || '';
-    sheet.appendRow([now, data.voter, id, vote, isFav, note]);
+    sheet.appendRow([now, data.voter, id, vote, note]);
   }
   return { success: true };
 }

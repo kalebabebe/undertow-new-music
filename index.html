@@ -166,32 +166,6 @@
   .badge-champion { background: #e3f2fd; color: #1565c0; }
   .badge-style { background: #f3e5f5; color: #7b1fa2; }
 
-  .song-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .fav-btn {
-    padding: 0.55rem 0.5rem;
-    border: 2px solid var(--light-gray);
-    border-radius: 6px;
-    background: white;
-    font-size: 0.82rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.15s;
-    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.3rem;
-  }
-
-  .fav-btn:hover { border-color: var(--gold-light); }
-  .fav-btn.faved { border-color: var(--gold); background: var(--gold-light); }
-
   .song-note {
     width: 100%;
     padding: 0.4rem 0.6rem;
@@ -211,6 +185,7 @@
   .vote-buttons {
     display: flex;
     gap: 0.5rem;
+    margin-bottom: 0.5rem;
   }
 
   .vote-btn {
@@ -230,6 +205,7 @@
 
   .vote-btn:hover { border-color: var(--gold-light); }
 
+  .vote-btn.selected-fav { border-color: var(--gold); background: var(--gold-light); color: #8b6914; }
   .vote-btn.selected-yes { border-color: var(--green); background: #e8f5e9; color: var(--green); }
   .vote-btn.selected-open { border-color: var(--yellow); background: #fff8e1; color: var(--yellow); }
   .vote-btn.selected-no { border-color: var(--red); background: #fbe9e7; color: var(--red); }
@@ -247,6 +223,7 @@
 
   .tally-item { display: flex; align-items: center; gap: 0.2rem; }
   .tally-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .dot-fav { background: var(--gold); }
   .dot-yes { background: var(--green); }
   .dot-open { background: var(--yellow); }
   .dot-no { background: var(--red); }
@@ -340,6 +317,7 @@
     background: var(--light-gray);
   }
 
+  .bar-fav { background: var(--gold); }
   .bar-yes { background: var(--green); }
   .bar-open { background: var(--yellow); }
   .bar-no { background: var(--red); }
@@ -751,7 +729,6 @@ const FALLBACK_SONGS = [
 
 let currentSongs = [];
 let userVotes = {};
-let userFavs = {};
 let userNotes = {};
 let isDemo = !CONFIG.API_URL;
 
@@ -794,35 +771,33 @@ function renderSongs(songs) {
           ${sheetBadge}
           ${song.champion ? `<span class="badge badge-champion">Suggested: ${song.champion}</span>` : ''}
         </div>
-        <div class="song-actions">
-          <button class="fav-btn ${userFavs[song.id] ? 'faved' : ''}"
-                  onclick="toggleFav(${song.id}, this)" title="Favorite">
-            <span class="fav-star">${userFavs[song.id] ? '\u2605' : '\u2606'}</span><span class="fav-label">Favorite</span>
+        <div class="vote-buttons">
+          <button class="vote-btn ${userVotes[song.id] === 'fav' ? 'selected-fav' : ''}"
+                  onclick="vote(${song.id}, 'fav', this)">
+            \u2605 Favorite
           </button>
-          <div class="vote-buttons" style="flex:1;">
-            <button class="vote-btn ${userVotes[song.id] === 'yes' ? 'selected-yes' : ''}"
-                    onclick="vote(${song.id}, 'yes', this)">
-              Let's do it
-            </button>
-            <button class="vote-btn ${userVotes[song.id] === 'open' ? 'selected-open' : ''}"
-                    onclick="vote(${song.id}, 'open', this)">
-              I'm open to it
-            </button>
-            <button class="vote-btn ${userVotes[song.id] === 'no' ? 'selected-no' : ''}"
-                    onclick="vote(${song.id}, 'no', this)">
-              Not for me
-            </button>
-          </div>
+          <button class="vote-btn ${userVotes[song.id] === 'yes' ? 'selected-yes' : ''}"
+                  onclick="vote(${song.id}, 'yes', this)">
+            Let's do it
+          </button>
+          <button class="vote-btn ${userVotes[song.id] === 'open' ? 'selected-open' : ''}"
+                  onclick="vote(${song.id}, 'open', this)">
+            I'm open to it
+          </button>
+          <button class="vote-btn ${userVotes[song.id] === 'no' ? 'selected-no' : ''}"
+                  onclick="vote(${song.id}, 'no', this)">
+            Not for me
+          </button>
         </div>
         <textarea class="song-note" data-song-id="${song.id}"
                   placeholder="Any thoughts on this one?"
                   oninput="userNotes[${song.id}]=this.value">${userNotes[song.id] || ''}</textarea>
-        ${song.votes && (song.votes.yes + song.votes.open + song.votes.no > 0) ? `
+        ${song.votes && ((song.votes.fav || 0) + song.votes.yes + song.votes.open + song.votes.no > 0) ? `
           <div class="vote-tally">
+            <span class="tally-item"><span class="tally-dot dot-fav"></span> ${song.votes.fav || 0}</span>
             <span class="tally-item"><span class="tally-dot dot-yes"></span> ${song.votes.yes}</span>
             <span class="tally-item"><span class="tally-dot dot-open"></span> ${song.votes.open}</span>
             <span class="tally-item"><span class="tally-dot dot-no"></span> ${song.votes.no}</span>
-            ${song.favs ? '<span class="tally-item">\u2605 ' + song.favs + '</span>' : ''}
           </div>
         ` : ''}
       </div>
@@ -834,15 +809,9 @@ function vote(songId, value, btn) {
   userVotes[songId] = value;
   const card = btn.closest('.song-card');
   card.querySelectorAll('.vote-btn').forEach(b => {
-    b.classList.remove('selected-yes', 'selected-open', 'selected-no');
+    b.classList.remove('selected-fav', 'selected-yes', 'selected-open', 'selected-no');
   });
   btn.classList.add(`selected-${value}`);
-}
-
-function toggleFav(songId, btn) {
-  userFavs[songId] = !userFavs[songId];
-  btn.classList.toggle('faved');
-  btn.querySelector('.fav-star').textContent = userFavs[songId] ? '\u2605' : '\u2606';
 }
 
 async function submitVotes() {
@@ -867,7 +836,7 @@ async function submitVotes() {
   btn.textContent = 'Submitting...';
 
   try {
-    const result = await postToAPI({ action: 'vote', voter: name, votes: userVotes, favs: userFavs, notes: userNotes });
+    const result = await postToAPI({ action: 'vote', voter: name, votes: userVotes, notes: userNotes });
     if (result.success) {
       showStatus('vote-status', 'Votes submitted — thank you, ' + name + '!', 'success');
       userVotes = {};
@@ -951,8 +920,8 @@ function loadResults() {
 
 function renderResults(songs) {
   const sorted = [...songs].sort((a, b) => {
-    const scoreA = (a.votes?.yes || 0) * 3 + (a.votes?.open || 0) - (a.votes?.no || 0);
-    const scoreB = (b.votes?.yes || 0) * 3 + (b.votes?.open || 0) - (b.votes?.no || 0);
+    const scoreA = (a.votes?.fav || 0) * 5 + (a.votes?.yes || 0) * 3 + (a.votes?.open || 0) - (a.votes?.no || 0);
+    const scoreB = (b.votes?.fav || 0) * 5 + (b.votes?.yes || 0) * 3 + (b.votes?.open || 0) - (b.votes?.no || 0);
     return scoreB - scoreA;
   });
   const list = document.getElementById('results-list');
@@ -961,7 +930,8 @@ function renderResults(songs) {
     return;
   }
   list.innerHTML = sorted.map((song, i) => {
-    const total = (song.votes?.yes || 0) + (song.votes?.open || 0) + (song.votes?.no || 0);
+    const total = (song.votes?.fav || 0) + (song.votes?.yes || 0) + (song.votes?.open || 0) + (song.votes?.no || 0);
+    const pctFav = total ? (((song.votes?.fav || 0) / total) * 100) : 0;
     const pctYes = total ? ((song.votes.yes / total) * 100) : 0;
     const pctOpen = total ? ((song.votes.open / total) * 100) : 0;
     const pctNo = total ? ((song.votes.no / total) * 100) : 0;
@@ -972,12 +942,13 @@ function renderResults(songs) {
           <div class="results-title">${song.title}</div>
           <div style="font-size:0.82rem;color:var(--gray);">${song.artist}</div>
           <div class="results-bar">
+            <div class="bar-fav" style="width:${pctFav}%"></div>
             <div class="bar-yes" style="width:${pctYes}%"></div>
             <div class="bar-open" style="width:${pctOpen}%"></div>
             <div class="bar-no" style="width:${pctNo}%"></div>
           </div>
           <div class="results-votes">
-            ${song.votes?.yes || 0} yes · ${song.votes?.open || 0} open · ${song.votes?.no || 0} no${song.favs ? ' · ★ ' + song.favs : ''}
+            ${song.votes?.fav || 0} fav · ${song.votes?.yes || 0} yes · ${song.votes?.open || 0} open · ${song.votes?.no || 0} no
           </div>
         </div>
       </div>
@@ -1038,17 +1009,17 @@ async function init() {
         currentSongs = data.songs;
       } else {
         currentSongs = FALLBACK_SONGS.map(function(s) {
-          return Object.assign({}, s, { votes: { yes: 0, open: 0, no: 0 }, favs: 0 });
+          return Object.assign({}, s, { votes: { fav: 0, yes: 0, open: 0, no: 0 } });
         });
       }
     } catch (e) {
       currentSongs = FALLBACK_SONGS.map(function(s) {
-        return Object.assign({}, s, { votes: { yes: 0, open: 0, no: 0 }, favs: 0 });
+        return Object.assign({}, s, { votes: { fav: 0, yes: 0, open: 0, no: 0 } });
       });
     }
   } else {
     currentSongs = FALLBACK_SONGS.map(function(s) {
-      return Object.assign({}, s, { votes: { yes: 0, open: 0, no: 0 }, favs: 0 });
+      return Object.assign({}, s, { votes: { fav: 0, yes: 0, open: 0, no: 0 } });
     });
   }
   renderSongs(currentSongs);
