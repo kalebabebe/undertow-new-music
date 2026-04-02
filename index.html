@@ -976,7 +976,7 @@ function renderResults(songs) {
             <div class="bar-no" style="width:${pctNo}%"></div>
           </div>
           <div class="results-votes">
-            ${song.votes?.yes || 0} yes · ${song.votes?.open || 0} open · ${song.votes?.no || 0} no
+            ${song.votes?.yes || 0} yes · ${song.votes?.open || 0} open · ${song.votes?.no || 0} no${song.favs ? ' · ★ ' + song.favs : ''}
           </div>
         </div>
       </div>

@@ -70,25 +70,35 @@ function getSongsWithVotes() {
       style: row[5] || '',
       notes: row[6] || '',
       link: row[7] || '',
-      votes: { yes: 0, open: 0, no: 0 }
+      votes: { yes: 0, open: 0, no: 0 },
+      favs: 0
     });
   }
 
   if (votesSheet.getLastRow() > 1) {
     const voteData = votesSheet.getDataRange().getValues();
     const latestVotes = {};
+    const latestFavs = {};
     for (let i = 1; i < voteData.length; i++) {
       const voter = voteData[i][1];
       const songId = voteData[i][2];
       const vote = voteData[i][3];
+      const fav = voteData[i][4];
       latestVotes[voter + '__' + songId] = vote;
+      latestFavs[voter + '__' + songId] = (fav === 'yes');
     }
     for (var key in latestVotes) {
       var songId = key.split('__')[1];
       var vote = latestVotes[key];
+      var isFav = latestFavs[key];
       var song = songs.find(function(s) { return String(s.id) === String(songId); });
-      if (song && song.votes[vote] !== undefined) {
-        song.votes[vote]++;
+      if (song) {
+        if (song.votes[vote] !== undefined) {
+          song.votes[vote]++;
+        }
+        if (isFav) {
+          song.favs++;
+        }
       }
     }
   }
