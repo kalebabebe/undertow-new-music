@@ -822,6 +822,7 @@ function renderSongs(songs) {
             <span class="tally-item"><span class="tally-dot dot-yes"></span> ${song.votes.yes}</span>
             <span class="tally-item"><span class="tally-dot dot-open"></span> ${song.votes.open}</span>
             <span class="tally-item"><span class="tally-dot dot-no"></span> ${song.votes.no}</span>
+            ${song.favs ? '<span class="tally-item">\u2605 ' + song.favs + '</span>' : ''}
           </div>
         ` : ''}
       </div>
@@ -1037,17 +1038,17 @@ async function init() {
         currentSongs = data.songs;
       } else {
         currentSongs = FALLBACK_SONGS.map(function(s) {
-          return Object.assign({}, s, { votes: { yes: 0, open: 0, no: 0 } });
+          return Object.assign({}, s, { votes: { yes: 0, open: 0, no: 0 }, favs: 0 });
         });
       }
     } catch (e) {
       currentSongs = FALLBACK_SONGS.map(function(s) {
-        return Object.assign({}, s, { votes: { yes: 0, open: 0, no: 0 } });
+        return Object.assign({}, s, { votes: { yes: 0, open: 0, no: 0 }, favs: 0 });
       });
     }
   } else {
     currentSongs = FALLBACK_SONGS.map(function(s) {
-      return Object.assign({}, s, { votes: { yes: 0, open: 0, no: 0 } });
+      return Object.assign({}, s, { votes: { yes: 0, open: 0, no: 0 }, favs: 0 });
     });
   }
   renderSongs(currentSongs);

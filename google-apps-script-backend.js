@@ -109,11 +109,22 @@ function getSongsWithVotes() {
 function recordVotes(data) {
   var sheet = getSheet('Votes');
   var now = new Date();
-  var songIds = Object.keys(data.votes || {});
+  // Collect all song IDs that have a vote, fav, or note
+  var allIds = {};
+  var votes = data.votes || {};
+  var favs = data.favs || {};
+  var notes = data.notes || {};
+  var key;
+  for (key in votes) { allIds[key] = true; }
+  for (key in favs) { if (favs[key]) { allIds[key] = true; } }
+  for (key in notes) { if (notes[key]) { allIds[key] = true; } }
+  var songIds = Object.keys(allIds);
   for (var i = 0; i < songIds.length; i++) {
-    var isFav = data.favs && data.favs[songIds[i]] ? 'yes' : '';
-    var note = data.notes && data.notes[songIds[i]] ? data.notes[songIds[i]] : '';
-    sheet.appendRow([now, data.voter, songIds[i], data.votes[songIds[i]], isFav, note]);
+    var id = songIds[i];
+    var vote = votes[id] || '';
+    var isFav = favs[id] ? 'yes' : '';
+    var note = notes[id] || '';
+    sheet.appendRow([now, data.voter, id, vote, isFav, note]);
   }
   return { success: true };
 }
