@@ -457,7 +457,7 @@
 // CONFIGURATION — UPDATE AFTER GOOGLE SHEETS SETUP
 // ============================================================
 const CONFIG = {
-  API_URL: 'https://script.google.com/macros/s/AKfycbxIdiHPEQrcjTa_z53j5Pq5aG6oRSBe9iF8oJ54uqsy-8Q0La1PTo7Y6OCq-sMQrZDv/exec'
+  API_URL: 'https://script.google.com/macros/s/AKfycbx7kZhPySJ5XdpQzSmLH1IJWJ0sUeJkQN81zNDmzL_S3_gsG86LHSdNTS_US3TPRo_e/exec'
 };
 
 // ============================================================
@@ -902,12 +902,15 @@ async function submitSuggestion() {
 }
 
 function loadResults() {
-  // Show current data immediately, then refresh from API
-  renderResults(currentSongs);
   if (!isDemo) {
+    renderResults(currentSongs);
     fetchFromAPI('results')
       .then(function(data) {
         if (data.success && data.songs && data.songs.length > 0) {
+          // Ensure every song has a fav vote key (backwards compat with old API)
+          data.songs.forEach(function(s) {
+            if (s.votes && s.votes.fav === undefined) { s.votes.fav = 0; }
+          });
           currentSongs = data.songs;
         }
         renderResults(currentSongs);
@@ -915,6 +918,8 @@ function loadResults() {
       .catch(function() {
         renderResults(currentSongs);
       });
+  } else {
+    renderResults(currentSongs);
   }
 }
 
