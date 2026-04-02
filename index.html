@@ -174,24 +174,19 @@
   }
 
   .fav-btn {
-    padding: 0.4rem 0.6rem;
+    padding: 0.55rem 0.5rem;
     border: 2px solid var(--light-gray);
     border-radius: 6px;
     background: white;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.15s;
-    line-height: 1;
     font-family: -apple-system, BlinkMacSystemFont, sans-serif;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 0.3rem;
-  }
-
-  .fav-btn .fav-label {
-    font-size: 0.75rem;
-    font-weight: 500;
-    letter-spacing: 0.02em;
   }
 
   .fav-btn:hover { border-color: var(--gold-light); }
@@ -879,7 +874,7 @@ async function submitVotes() {
       showStatus('vote-status', 'Something went wrong. Try again?', 'error');
     }
   } catch (e) {
-    showStatus('vote-status', 'Could not reach the server. Try again later.', 'error');
+    showStatus('vote-status', 'Took longer than expected — your votes may still have been saved. Check the Results tab in a moment.', 'error');
   }
   btn.disabled = false;
   btn.textContent = 'Submit Votes';
@@ -932,7 +927,7 @@ async function submitSuggestion() {
       showStatus('suggest-status', 'Something went wrong. Try again?', 'error');
     }
   } catch (e) {
-    showStatus('suggest-status', 'Could not reach the server. Try again later.', 'error');
+    showStatus('suggest-status', 'Took longer than expected — your suggestion may still have been saved.', 'error');
   }
 }
 
@@ -999,7 +994,7 @@ function callAPI(action, payload) {
       delete window[callbackName];
       if (script.parentNode) script.parentNode.removeChild(script);
       reject(new Error('Request timed out'));
-    }, 15000);
+    }, 30000);
 
     window[callbackName] = function(data) {
       clearTimeout(timeout);
