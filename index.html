@@ -178,10 +178,20 @@
     border: 2px solid var(--light-gray);
     border-radius: 6px;
     background: white;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     cursor: pointer;
     transition: all 0.15s;
     line-height: 1;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .fav-btn .fav-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
   }
 
   .fav-btn:hover { border-color: var(--gold-light); }
@@ -792,7 +802,7 @@ function renderSongs(songs) {
         <div class="song-actions">
           <button class="fav-btn ${userFavs[song.id] ? 'faved' : ''}"
                   onclick="toggleFav(${song.id}, this)" title="Favorite">
-            ${userFavs[song.id] ? '\u2605' : '\u2606'}
+            <span class="fav-star">${userFavs[song.id] ? '\u2605' : '\u2606'}</span><span class="fav-label">Favorite</span>
           </button>
           <div class="vote-buttons" style="flex:1;">
             <button class="vote-btn ${userVotes[song.id] === 'yes' ? 'selected-yes' : ''}"
@@ -836,7 +846,7 @@ function vote(songId, value, btn) {
 function toggleFav(songId, btn) {
   userFavs[songId] = !userFavs[songId];
   btn.classList.toggle('faved');
-  btn.textContent = userFavs[songId] ? '\u2605' : '\u2606';
+  btn.querySelector('.fav-star').textContent = userFavs[songId] ? '\u2605' : '\u2606';
 }
 
 async function submitVotes() {
