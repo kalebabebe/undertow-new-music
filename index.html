@@ -12,9 +12,18 @@
     --dark2: #16213e;
     --dark3: #0f3460;
     --cream: #faf8f0;
-    --green: #4a9e6e;
-    --yellow: #c9a227;
-    --red: #c0504d;
+    --fav: #7c3aed;
+    --fav-light: #f0e7ff;
+    --fav-text: #6d28d9;
+    --green: #059669;
+    --green-light: #e2f8f0;
+    --green-text: #047857;
+    --yellow: #ea580c;
+    --yellow-light: #fff1e6;
+    --yellow-text: #c2410c;
+    --red: #64748b;
+    --red-light: #f1f5f9;
+    --red-text: #475569;
     --gray: #6b7280;
     --light-gray: #e5e7eb;
   }
@@ -205,10 +214,10 @@
 
   .vote-btn:hover { border-color: var(--gold-light); }
 
-  .vote-btn.selected-fav { border-color: var(--gold); background: var(--gold-light); color: #8b6914; }
-  .vote-btn.selected-yes { border-color: var(--green); background: #e8f5e9; color: var(--green); }
-  .vote-btn.selected-open { border-color: var(--yellow); background: #fff8e1; color: var(--yellow); }
-  .vote-btn.selected-no { border-color: var(--red); background: #fbe9e7; color: var(--red); }
+  .vote-btn.selected-fav { border-color: var(--fav); background: var(--fav-light); color: var(--fav-text); }
+  .vote-btn.selected-yes { border-color: var(--green); background: var(--green-light); color: var(--green-text); }
+  .vote-btn.selected-open { border-color: var(--yellow); background: var(--yellow-light); color: var(--yellow-text); }
+  .vote-btn.selected-no { border-color: var(--red); background: var(--red-light); color: var(--red-text); }
 
   .vote-tally {
     display: flex;
@@ -223,7 +232,7 @@
 
   .tally-item { display: flex; align-items: center; gap: 0.2rem; }
   .tally-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-  .dot-fav { background: var(--gold); }
+  .dot-fav { background: var(--fav); }
   .dot-yes { background: var(--green); }
   .dot-open { background: var(--yellow); }
   .dot-no { background: var(--red); }
@@ -317,7 +326,7 @@
     background: var(--light-gray);
   }
 
-  .bar-fav { background: var(--gold); }
+  .bar-fav { background: var(--fav); }
   .bar-yes { background: var(--green); }
   .bar-open { background: var(--yellow); }
   .bar-no { background: var(--red); }
