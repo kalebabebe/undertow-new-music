@@ -175,6 +175,25 @@
   .badge-champion { background: #e3f2fd; color: #1565c0; }
   .badge-style { background: #f3e5f5; color: #7b1fa2; }
 
+  .champion-note {
+    background: #fffbeb;
+    border-left: 3px solid #d97706;
+    padding: 0.5rem 0.7rem;
+    margin-bottom: 0.75rem;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.84rem;
+    color: #92400e;
+    line-height: 1.45;
+  }
+  .champion-note-label {
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: #b45309;
+    margin-bottom: 0.15rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
   .song-note {
     width: 100%;
     padding: 0.4rem 0.6rem;
@@ -780,6 +799,12 @@ function renderSongs(songs) {
           ${sheetBadge}
           ${song.champion ? `<span class="badge badge-champion">Suggested: ${song.champion}</span>` : ''}
         </div>
+        ${song.notes ? `
+          <div class="champion-note">
+            <div class="champion-note-label">${song.champion ? song.champion + '\u2019s note' : 'Champion\u2019s note'}</div>
+            ${song.notes}
+          </div>
+        ` : ''}
         <div class="vote-buttons">
           <button class="vote-btn ${userVotes[song.id] === 'fav' ? 'selected-fav' : ''}"
                   onclick="vote(${song.id}, 'fav', this)">
@@ -960,6 +985,12 @@ function renderResults(songs) {
             </div>
             ${song.link ? '<a href="' + song.link + '" target="_blank" rel="noopener" class="song-listen">Listen</a>' : ''}
           </div>
+          ${song.notes ? `
+            <div class="champion-note" style="margin-top:0.4rem;">
+              <div class="champion-note-label">${song.champion ? song.champion + '\u2019s note' : 'Champion\u2019s note'}</div>
+              ${song.notes}
+            </div>
+          ` : ''}
           <div class="results-bar">
             <div class="bar-fav" style="width:${pctFav}%"></div>
             <div class="bar-yes" style="width:${pctYes}%"></div>
