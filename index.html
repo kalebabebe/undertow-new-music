@@ -778,7 +778,15 @@ function shuffle(arr) {
 }
 
 function renderSongs(songs) {
-  songs = shuffle(songs);
+  const needsVotes = songs.filter(s => {
+    const total = (s.votes?.fav || 0) + (s.votes?.yes || 0) + (s.votes?.open || 0) + (s.votes?.no || 0);
+    return total < 3;
+  });
+  const established = songs.filter(s => {
+    const total = (s.votes?.fav || 0) + (s.votes?.yes || 0) + (s.votes?.open || 0) + (s.votes?.no || 0);
+    return total >= 3;
+  });
+  songs = [...shuffle(needsVotes), ...shuffle(established)];
   const list = document.getElementById('song-list');
   if (!songs.length) {
     list.innerHTML = '<div class="empty-state"><p>No songs to vote on yet.</p></div>';
