@@ -780,11 +780,11 @@ function shuffle(arr) {
 function renderSongs(songs) {
   const needsVotes = songs.filter(s => {
     const total = (s.votes?.fav || 0) + (s.votes?.yes || 0) + (s.votes?.open || 0) + (s.votes?.no || 0);
-    return total < 3;
+    return total <= 4;
   });
   const established = songs.filter(s => {
     const total = (s.votes?.fav || 0) + (s.votes?.yes || 0) + (s.votes?.open || 0) + (s.votes?.no || 0);
-    return total >= 3;
+    return total > 4;
   });
   songs = [...shuffle(needsVotes), ...shuffle(established)];
   const list = document.getElementById('song-list');
