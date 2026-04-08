@@ -104,6 +104,7 @@
     margin-bottom: 0.4rem;
   }
 
+  .voter-section select,
   .voter-section input {
     width: 100%;
     padding: 0.5rem 0.75rem;
@@ -111,9 +112,16 @@
     border-radius: 6px;
     font-family: inherit;
     font-size: 1rem;
+    background: white;
   }
 
+  .voter-section select:focus,
   .voter-section input:focus { outline: none; border-color: var(--gold); }
+
+  #new-voter-input {
+    margin-top: 0.5rem;
+    display: none;
+  }
 
   .song-card {
     background: white;
@@ -415,8 +423,12 @@
   <div id="tab-vote" class="tab-content active">
     <p class="tab-hint">Listen to each song, then vote.</p>
     <div class="voter-section">
-      <label for="voter-name">Your Name</label>
-      <input type="text" id="voter-name" placeholder="So we know who voted" />
+      <label for="voter-select">Who are you?</label>
+      <select id="voter-select" onchange="onVoterSelect()">
+        <option value="">— Pick your name —</option>
+        <option value="__new">I'm new!</option>
+      </select>
+      <input type="text" id="new-voter-input" placeholder="Enter your name" />
     </div>
     <div id="song-list"></div>
     <div class="submit-section">
@@ -759,6 +771,8 @@ const FALLBACK_SONGS = [
 let currentSongs = [];
 let userVotes = {};
 let userNotes = {};
+let voterMap = {};
+let knownVoters = [];
 let isDemo = !CONFIG.API_URL;
 
 function switchTab(tab) {
@@ -767,6 +781,54 @@ function switchTab(tab) {
   document.querySelector(`[onclick="switchTab('${tab}')"]`).classList.add('active');
   document.getElementById(`tab-${tab}`).classList.add('active');
   if (tab === 'results') loadResults();
+}
+
+function populateVoterDropdown(voters) {
+  const select = document.getElementById('voter-select');
+  // Keep the first two options (placeholder + "I'm new")
+  while (select.options.length > 2) select.remove(2);
+  voters.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    // Insert before the "I'm new" option
+    select.insertBefore(opt, select.options[1]);
+  });
+}
+
+function onVoterSelect() {
+  const select = document.getElementById('voter-select');
+  const newInput = document.getElementById('new-voter-input');
+  const val = select.value;
+
+  if (val === '__new') {
+    newInput.style.display = 'block';
+    newInput.focus();
+    userVotes = {};
+    userNotes = {};
+    renderSongs(currentSongs);
+    return;
+  }
+
+  newInput.style.display = 'none';
+  newInput.value = '';
+
+  if (val && voterMap[val]) {
+    userVotes = Object.assign({}, voterMap[val].votes || {});
+    userNotes = Object.assign({}, voterMap[val].notes || {});
+  } else {
+    userVotes = {};
+    userNotes = {};
+  }
+  renderSongs(currentSongs);
+}
+
+function getVoterName() {
+  const select = document.getElementById('voter-select');
+  if (select.value === '__new') {
+    return document.getElementById('new-voter-input').value.trim();
+  }
+  return select.value;
 }
 
 function shuffle(arr) {
@@ -779,15 +841,26 @@ function shuffle(arr) {
 }
 
 function renderSongs(songs) {
-  const needsVotes = songs.filter(s => {
-    const total = (s.votes?.fav || 0) + (s.votes?.yes || 0) + (s.votes?.open || 0) + (s.votes?.no || 0);
-    return total <= 4;
-  });
-  const established = songs.filter(s => {
-    const total = (s.votes?.fav || 0) + (s.votes?.yes || 0) + (s.votes?.open || 0) + (s.votes?.no || 0);
-    return total > 4;
-  });
-  songs = [...shuffle(needsVotes), ...shuffle(established)];
+  // If a voter is selected, prioritize songs they haven't voted on
+  const hasVoter = Object.keys(userVotes).length > 0 || getVoterName();
+  const unvoted = hasVoter ? songs.filter(s => !userVotes[s.id]) : [];
+  const voted = hasVoter ? songs.filter(s => userVotes[s.id]) : [];
+
+  if (hasVoter) {
+    // Unvoted first (shuffled), then voted (shuffled)
+    songs = [...shuffle(unvoted), ...shuffle(voted)];
+  } else {
+    // No voter selected: use global needs-votes priority
+    const needsVotes = songs.filter(s => {
+      const total = (s.votes?.fav || 0) + (s.votes?.yes || 0) + (s.votes?.open || 0) + (s.votes?.no || 0);
+      return total <= 4;
+    });
+    const established = songs.filter(s => {
+      const total = (s.votes?.fav || 0) + (s.votes?.yes || 0) + (s.votes?.open || 0) + (s.votes?.no || 0);
+      return total > 4;
+    });
+    songs = [...shuffle(needsVotes), ...shuffle(established)];
+  }
   const list = document.getElementById('song-list');
   if (!songs.length) {
     list.innerHTML = '<div class="empty-state"><p>No songs to vote on yet.</p></div>';
@@ -868,10 +941,19 @@ function vote(songId, value, btn) {
 }
 
 async function submitVotes() {
-  const name = document.getElementById('voter-name').value.trim();
+  const name = getVoterName();
   if (!name) {
-    showStatus('vote-status', 'Please enter your name above.', 'error');
+    showStatus('vote-status', 'Please select your name or enter a new one above.', 'error');
     return;
+  }
+  // Check if a new user typed a name that already exists
+  const select = document.getElementById('voter-select');
+  if (select.value === '__new') {
+    const match = knownVoters.find(v => v.toLowerCase() === name.toLowerCase());
+    if (match) {
+      showStatus('vote-status', 'It looks like "' + match + '" already exists — please pick it from the dropdown instead.', 'error');
+      return;
+    }
   }
   const votedSongs = Object.keys(userVotes);
   if (!votedSongs.length) {
@@ -892,7 +974,19 @@ async function submitVotes() {
     const result = await postToAPI({ action: 'vote', voter: name, votes: userVotes, notes: userNotes });
     if (result.success) {
       showStatus('vote-status', 'Votes submitted — thank you, ' + name + '!', 'success');
-      userVotes = {};
+      // If new voter, add them to the dropdown
+      if (select.value === '__new' && !knownVoters.find(v => v.toLowerCase() === name.toLowerCase())) {
+        knownVoters.push(name);
+        knownVoters.sort();
+        populateVoterDropdown(knownVoters);
+        voterMap[name] = { votes: Object.assign({}, userVotes), notes: Object.assign({}, userNotes) };
+        select.value = name;
+        document.getElementById('new-voter-input').style.display = 'none';
+      } else if (voterMap[name]) {
+        // Update local voterMap for returning voter
+        voterMap[name].votes = Object.assign({}, voterMap[name].votes, userVotes);
+        voterMap[name].notes = Object.assign({}, voterMap[name].notes, userNotes);
+      }
     } else {
       showStatus('vote-status', 'Something went wrong. Try again?', 'error');
     }
@@ -1076,6 +1170,8 @@ async function init() {
       var data = await fetchFromAPI('songs');
       if (data.success && data.songs && data.songs.length > 0) {
         currentSongs = data.songs;
+        if (data.voters) knownVoters = data.voters;
+        if (data.voterMap) voterMap = data.voterMap;
       } else {
         currentSongs = FALLBACK_SONGS.map(function(s) {
           return Object.assign({}, s, { votes: { fav: 0, yes: 0, open: 0, no: 0 } });
@@ -1091,6 +1187,7 @@ async function init() {
       return Object.assign({}, s, { votes: { fav: 0, yes: 0, open: 0, no: 0 } });
     });
   }
+  if (knownVoters.length) populateVoterDropdown(knownVoters);
   renderSongs(currentSongs);
 }
 

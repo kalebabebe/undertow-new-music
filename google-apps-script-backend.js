@@ -74,28 +74,47 @@ function getSongsWithVotes() {
     });
   }
 
+  var voterMap = {};  // { voterName: { songId: vote, ... }, ... }
+
   if (votesSheet.getLastRow() > 1) {
     const voteData = votesSheet.getDataRange().getValues();
     const latestVotes = {};
+    const latestNotes = {};
     for (let i = 1; i < voteData.length; i++) {
       const voter = voteData[i][1];
       const songId = voteData[i][2];
       const vote = voteData[i][3];
+      const note = voteData[i][4] || '';
       if (vote) {
         latestVotes[voter + '__' + songId] = vote;
       }
+      if (note) {
+        latestNotes[voter + '__' + songId] = note;
+      }
     }
     for (var key in latestVotes) {
-      var songId = key.split('__')[1];
+      var parts = key.split('__');
+      var voter = parts[0];
+      var songId = parts[1];
       var vote = latestVotes[key];
       var song = songs.find(function(s) { return String(s.id) === String(songId); });
       if (song && song.votes[vote] !== undefined) {
         song.votes[vote]++;
       }
+      if (!voterMap[voter]) voterMap[voter] = { votes: {}, notes: {} };
+      voterMap[voter].votes[songId] = vote;
+    }
+    for (var key in latestNotes) {
+      var parts = key.split('__');
+      var voter = parts[0];
+      var songId = parts[1];
+      if (!voterMap[voter]) voterMap[voter] = { votes: {}, notes: {} };
+      voterMap[voter].notes[songId] = latestNotes[key];
     }
   }
 
-  return { success: true, songs: songs };
+  var voters = Object.keys(voterMap).sort();
+  return { success: true, songs: songs, voters: voters, voterMap: voterMap };
 }
 
 function recordVotes(data) {
