@@ -383,6 +383,8 @@
 
   .status-success { background: #e8f5e9; color: #2e7d32; }
   .status-error { background: #fbe9e7; color: #c0504d; }
+  .status-info { background: #fff8e1; color: #7c6a1a; border: 1px solid #ffe082; }
+  .status-info a { color: #b8860b; font-weight: 600; }
 
   .empty-state {
     text-align: center;
@@ -433,6 +435,7 @@
     <div id="song-list"></div>
     <div class="submit-section">
       <button class="submit-btn" onclick="submitVotes()" id="submit-votes-btn">Submit Votes</button>
+      <p style="font-size:0.8rem;color:var(--gray);margin-top:0.6rem;">Submitting can take a moment, hang tight!</p>
     </div>
     <div id="vote-status"></div>
   </div>
@@ -991,7 +994,7 @@ async function submitVotes() {
       showStatus('vote-status', 'Something went wrong. Try again?', 'error');
     }
   } catch (e) {
-    showStatus('vote-status', 'Took longer than expected — your votes may still have been saved. Check the Results tab in a moment.', 'error');
+    showStatus('vote-status', 'Taking a bit longer than usual, your votes are likely saved. <a href="https://docs.google.com/spreadsheets/d/1kTlFPVCw4xmo_luHUksCko_WgWzov5VVY53-bE3Qc1g/edit#gid=0&range=A500" target="_blank">Check the bottom of the Votes tab</a> to confirm.', 'info', true);
   }
   btn.disabled = false;
   btn.textContent = 'Submit Votes';
@@ -1044,7 +1047,7 @@ async function submitSuggestion() {
       showStatus('suggest-status', 'Something went wrong. Try again?', 'error');
     }
   } catch (e) {
-    showStatus('suggest-status', 'Took longer than expected — your suggestion may still have been saved.', 'error');
+    showStatus('suggest-status', 'Taking a bit longer than usual, your suggestion is likely saved.', 'info', true);
   }
 }
 
@@ -1156,10 +1159,10 @@ function callAPI(action, payload) {
 function postToAPI(data) { return callAPI(data.action, data); }
 function fetchFromAPI(action) { return callAPI(action); }
 
-function showStatus(elementId, message, type) {
+function showStatus(elementId, message, type, persistent) {
   const el = document.getElementById(elementId);
   el.innerHTML = `<div class="status-msg status-${type}">${message}</div>`;
-  setTimeout(() => { el.innerHTML = ''; }, 5000);
+  if (!persistent) setTimeout(() => { el.innerHTML = ''; }, 5000);
 }
 
 async function init() {
